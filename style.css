@@ -933,3 +933,65 @@ input[type="text"]:focus {
   }
   .tour-balao::after { display: none; }
 }
+
+/* Botão cancelar execução (no meio da tela de carregamento) */
+.btn--cancelar {
+  margin-top: 1.4rem;
+  width: auto;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.82rem;
+  border-color: var(--lapis);
+  color: var(--lapis-esc);
+}
+.btn--cancelar:hover {
+  background: rgba(181, 70, 46, 0.08);
+  border-color: var(--lapis-esc);
+}
+
+/* ---------- Modal genérico (popup de arredondamento) ---------- */
+.modal[hidden] { display: none !important; }
+.modal { position: fixed; inset: 0; z-index: 210; display: flex;
+  align-items: center; justify-content: center; }
+.modal__fundo { position: absolute; inset: 0; background: rgba(43,41,37,0.55); }
+.modal__caixa {
+  position: relative;
+  width: min(440px, 90vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--carta);
+  border: 1.5px solid var(--grafite);
+  border-radius: var(--r);
+  box-shadow: 0 14px 40px rgba(43,41,37,0.4);
+  padding: 1.4rem;
+}
+.modal__titulo {
+  font-family: var(--disp); font-weight: 600; font-size: 1.2rem; margin: 0 0 0.7rem;
+}
+.modal__texto { font-size: 0.88rem; line-height: 1.5; margin: 0 0 0.9rem; }
+.modal__lista {
+  border: 1.5px solid var(--linha); border-radius: var(--r);
+  background: var(--papel); padding: 0.5rem 0.7rem; margin-bottom: 0.9rem;
+  max-height: 220px; overflow-y: auto;
+}
+.modal__item {
+  display: flex; justify-content: space-between; gap: 0.8rem;
+  font-family: var(--mono); font-size: 0.82rem;
+  padding: 0.25rem 0; border-top: 1px solid var(--linha);
+}
+.modal__item:first-child { border-top: none; }
+.modal__item .de { color: var(--grafite-med); }
+.modal__item .para { color: var(--lapis-esc); font-weight: 600; }
+.modal__item .onde { color: var(--grafite-med); flex: 1; }
+.modal__dica { font-size: 0.78rem; color: var(--grafite-med); margin: 0 0 1.1rem; }
+.modal__botoes { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
+
+/* destaque nos campos que foram arredondados */
+.campo-arredondado input {
+  border-color: #C99A2E !important;
+  background: rgba(216, 162, 74, 0.15) !important;
+  animation: pulsoArred 1.2s ease-in-out 2;
+}
+@keyframes pulsoArred {
+  0%,100% { box-shadow: 0 0 0 0 rgba(201,154,46,0); }
+  50% { box-shadow: 0 0 0 3px rgba(201,154,46,0.4); }
+}

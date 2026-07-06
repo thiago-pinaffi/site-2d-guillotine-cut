@@ -145,6 +145,9 @@
       <div id="carregando" class="carregando" hidden>
         <div class="serra" aria-hidden="true"><span></span></div>
         <p id="carregandoTxt">Otimizando o corte…</p>
+        <button type="button" id="btnCancelar" class="btn btn--fantasma btn--cancelar">
+          Cancelar execução
+        </button>
       </div>
 
       <div id="resultado" hidden>
@@ -170,6 +173,32 @@
   <footer class="rodape">
     <span>Roda no seu computador · nenhum dado sai daqui</span>
   </footer>
+
+  <div id="modalArred" class="modal" hidden>
+    <div class="modal__fundo"></div>
+    <div class="modal__caixa" role="dialog" aria-labelledby="modalArredTit" aria-modal="true">
+      <h2 id="modalArredTit" class="modal__titulo">Valores com casas decimais</h2>
+      <p class="modal__texto">
+        O corte trabalha com números inteiros. Estes valores precisam ser
+        arredondados:
+      </p>
+      <div id="modalArredLista" class="modal__lista"></div>
+      <p class="modal__dica">
+        Dica: usar milímetros evita casas decimais.
+      </p>
+      <div class="modal__botoes">
+        <button type="button" id="modalArredCancelar" class="tour-btn tour-btn--fantasma">
+          Cancelar
+        </button>
+        <button type="button" id="modalArredCorrigir" class="tour-btn tour-btn--fantasma">
+          Corrigir na tela
+        </button>
+        <button type="button" id="modalArredContinuar" class="tour-btn tour-btn--forte">
+          Continuar assim
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div id="tourOverlay" class="tour-overlay" hidden>
     <div id="tourBuraco" class="tour-buraco"></div>

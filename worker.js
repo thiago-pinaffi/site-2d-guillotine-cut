@@ -8,16 +8,13 @@ importScripts("https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js");
 let pyodide = null;
 
 const PY_MODULOS = [
-  // "utilitarios/__init__.py,
   "utilitarios/leitor_itens.py",
   "utilitarios/desenhador.py",
-  // "empacotador/__init__.py",
   "empacotador/item.py",
   "empacotador/faixa3.py",
   "empacotador/faixa2.py",
   "empacotador/bin.py",
   "empacotador/empacotador.py",
-  // "algoritmo_genetico/__init__.py",
   "algoritmo_genetico/parametros_ga.py",
   "algoritmo_genetico/individuo.py",
   "algoritmo_genetico/algoritmo_genetico.py",

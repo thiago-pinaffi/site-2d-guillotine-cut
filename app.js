@@ -11,6 +11,28 @@ let worker = null;
 let PY_PRONTO = false;
 let _msgId = 0;
 const _pendentes = new Map();
+let _cancelado = false;
+
+function _criarWorker() {
+  const txt = document.getElementById("carregandoAppTxt");
+  const w = new Worker("worker.js");
+  w.onmessage = (ev) => {
+    const { id, ok, resultado, erro, progresso } = ev.data;
+    if (progresso) {
+      if (txt) txt.textContent = progresso;
+      return;
+    }
+    const p = _pendentes.get(id);
+    if (!p) return;
+    _pendentes.delete(id);
+    if (ok) p.resolve(resultado);
+    else p.reject(new Error(erro || "Erro no cálculo."));
+  };
+  w.onerror = () => {
+    if (txt) txt.textContent = "Não foi possível carregar o programa.";
+  };
+  return w;
+}
 
 function chamarWorker(tipo, dados) {
   return new Promise((resolve, reject) => {
@@ -24,26 +46,29 @@ function calcularNoWorker(payload) {
   return chamarWorker("resolver", payload);
 }
 
+// Cancela o cálculo em andamento: mata o worker (interrompe o Python na hora)
+// e cria um novo, já pronto para o próximo cálculo.
+async function cancelarExecucao() {
+  _cancelado = true;
+  // rejeita qualquer promessa pendente para o fluxo do resolver saber que parou
+  for (const [id, p] of _pendentes) {
+    p.reject(new Error("__cancelado__"));
+  }
+  _pendentes.clear();
+  if (worker) worker.terminate();
+  // recria o worker e reinicializa o Pyodide em segundo plano
+  worker = _criarWorker();
+  try {
+    await chamarWorker("iniciar", null);
+  } catch (e) {
+    // se falhar ao reinicializar, o usuário pode recarregar a página
+  }
+}
+
 async function iniciarPython() {
   const txt = document.getElementById("carregandoAppTxt");
   try {
-    worker = new Worker("worker.js");
-    worker.onmessage = (ev) => {
-      const { id, ok, resultado, erro, progresso } = ev.data;
-      if (progresso) {  // mensagens de status durante o carregamento
-        txt.textContent = progresso;
-        return;
-      }
-      const p = _pendentes.get(id);
-      if (!p) return;
-      _pendentes.delete(id);
-      if (ok) p.resolve(resultado);
-      else p.reject(new Error(erro || "Erro no cálculo."));
-    };
-    worker.onerror = (e) => {
-      txt.textContent = "Não foi possível carregar o programa.";
-    };
-
+    worker = _criarWorker();
     // manda o worker inicializar o Pyodide e carregar os módulos
     await chamarWorker("iniciar", null);
     PY_PRONTO = true;
@@ -304,6 +329,115 @@ function lerPecas() {
   return pecas;
 }
 
+/* ============================================================
+   ARREDONDAMENTO — detecção detalhada + popup
+   ============================================================ */
+
+// Varre todos os campos (chapa + peças) e devolve a lista do que será
+// arredondado, com referência ao input para poder destacar/corrigir.
+function detectarArredondamentos() {
+  const itens = [];
+
+  const campos = [
+    { input: el("#larguraBin"), nome: "Chapa — largura" },
+    { input: el("#alturaBin"), nome: "Chapa — altura" },
+  ];
+  campos.forEach(({ input, nome }) => {
+    const raw = _numero(input.value);
+    const arred = Math.round(raw);
+    if (Number.isFinite(raw) && arred !== raw) {
+      itens.push({ input, nome, de: raw, para: arred });
+    }
+  });
+
+  let n = 0;
+  linhasPecas.querySelectorAll(".linha-peca").forEach((linha) => {
+    n++;
+    const alvos = [
+      { sel: ".in-larg", rot: "largura" },
+      { sel: ".in-alt", rot: "altura" },
+      { sel: ".in-qtd", rot: "quantidade" },
+    ];
+    const cor = linha.querySelector(".in-cor").value.trim();
+    const lRaw = _numero(linha.querySelector(".in-larg").value);
+    const aRaw = _numero(linha.querySelector(".in-alt").value);
+    if (!lRaw && !aRaw && !cor) return; // linha vazia
+    alvos.forEach(({ sel, rot }) => {
+      const input = linha.querySelector(sel);
+      const raw = _numero(input.value);
+      const arred = Math.round(raw);
+      if (Number.isFinite(raw) && arred !== raw) {
+        itens.push({ input, nome: `Peça ${n} — ${rot}`, de: raw, para: arred });
+      }
+    });
+  });
+
+  return itens;
+}
+
+// Formata número removendo casas inúteis, usando vírgula (padrão BR) na exibição.
+function _fmt(n) {
+  return String(n).replace(".", ",");
+}
+
+// Mostra o popup e resolve com a escolha do usuário:
+//   "continuar" | "corrigir" | "cancelar"
+function perguntarArredondamento(itens) {
+  return new Promise((resolve) => {
+    const modal = el("#modalArred");
+    const lista = el("#modalArredLista");
+    lista.innerHTML = "";
+    itens.forEach((it) => {
+      const div = document.createElement("div");
+      div.className = "modal__item";
+      div.innerHTML =
+        `<span class="onde">${it.nome}</span>` +
+        `<span><span class="de">${_fmt(it.de)}</span> → ` +
+        `<span class="para">${_fmt(it.para)}</span></span>`;
+      lista.appendChild(div);
+    });
+
+    modal.hidden = false;
+
+    const fechar = (escolha) => {
+      modal.hidden = true;
+      btnCont.removeEventListener("click", onCont);
+      btnCorr.removeEventListener("click", onCorr);
+      btnCanc.removeEventListener("click", onCanc);
+      resolve(escolha);
+    };
+    const btnCont = el("#modalArredContinuar");
+    const btnCorr = el("#modalArredCorrigir");
+    const btnCanc = el("#modalArredCancelar");
+    const onCont = () => fechar("continuar");
+    const onCorr = () => fechar("corrigir");
+    const onCanc = () => fechar("cancelar");
+    btnCont.addEventListener("click", onCont);
+    btnCorr.addEventListener("click", onCorr);
+    btnCanc.addEventListener("click", onCanc);
+  });
+}
+
+// Aplica os valores arredondados nos campos e os destaca visualmente.
+function aplicarCorrecoes(itens) {
+  itens.forEach((it) => {
+    it.input.value = it.para;
+    const celula = it.input.closest(".campo, .celula-cor, td, .linha-peca") || it.input.parentElement;
+    it.input.classList.add("_arred-alvo");
+    const wrap = it.input.parentElement;
+    wrap.classList.add("campo-arredondado");
+  });
+  // rola até o primeiro campo corrigido
+  if (itens[0]) {
+    itens[0].input.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  // remove o destaque depois de alguns segundos
+  setTimeout(() => {
+    document.querySelectorAll(".campo-arredondado").forEach((e) =>
+      e.classList.remove("campo-arredondado"));
+  }, 4000);
+}
+
 /* ---------- Desenho de uma chapa (SVG em escala) ---------- */
 function desenharChapa(chapa) {
   const W = chapa.largura;
@@ -400,21 +534,28 @@ async function resolver() {
   const erroBox = el("#erro");
   erroBox.hidden = true;
 
-  const lbRaw = _numero(el("#larguraBin").value);
-  const abRaw = _numero(el("#alturaBin").value);
-  const largura_bin = Math.round(lbRaw);
-  const altura_bin = Math.round(abRaw);
-  const parametros = lerParametros();
-  const tempo_max = parametros.tempo_max || 10;
-  const pecas = lerPecas();
-
-  // Avisa se algum valor teve de ser arredondado (o algoritmo usa inteiros).
-  const binArredondado = largura_bin !== lbRaw || altura_bin !== abRaw;
-  if (_houveArredondamento || binArredondado) {
+  // 1) Antes de calcular: há valores com casas decimais? Se sim, pergunta.
+  const arredondamentos = detectarArredondamentos();
+  if (arredondamentos.length > 0) {
+    const escolha = await perguntarArredondamento(arredondamentos);
+    if (escolha === "cancelar") {
+      return; // não faz nada
+    }
+    if (escolha === "corrigir") {
+      aplicarCorrecoes(arredondamentos); // aplica na tela e destaca
+      return; // deixa o usuário revisar; ele clica calcular de novo quando quiser
+    }
+    // "continuar": segue com os valores arredondados
     mostrarAvisoArredondamento();
   } else {
     esconderAvisoArredondamento();
   }
+
+  const largura_bin = Math.round(_numero(el("#larguraBin").value));
+  const altura_bin = Math.round(_numero(el("#alturaBin").value));
+  const parametros = lerParametros();
+  const tempo_max = parametros.tempo_max || 10;
+  const pecas = lerPecas();
 
   // Estimativa de tempo p/ avisar o usuário (nº de cores × tempo)
   const cores = new Set(pecas.map((p) => (p.cor || "").toLowerCase())).size || 1;
@@ -426,20 +567,28 @@ async function resolver() {
   el("#carregando").hidden = false;
   const btn = el("#btnResolver");
   btn.disabled = true;
+  _cancelado = false;
 
   try {
     const dados = await calcularNoWorker({ largura_bin, altura_bin, parametros, pecas });
     if (!dados.ok) {
       throw new Error(dados.erro || "Não foi possível calcular o plano.");
     }
+    el("#carregando").hidden = true;
     renderizar(dados);
   } catch (e) {
     el("#carregando").hidden = true;
-    if (el("#resultado").hidden) el("#estadoVazio").hidden = false;
-    erroBox.textContent = e.message;
-    erroBox.hidden = false;
+    // se foi cancelamento do usuário, não mostra erro — só volta ao estado anterior
+    if (e.message === "__cancelado__" || _cancelado) {
+      if (el("#resultado").hidden) el("#estadoVazio").hidden = false;
+    } else {
+      if (el("#resultado").hidden) el("#estadoVazio").hidden = false;
+      erroBox.textContent = e.message;
+      erroBox.hidden = false;
+    }
   } finally {
     btn.disabled = false;
+    _cancelado = false;
   }
 }
 
@@ -705,6 +854,12 @@ function escapeHtml(t) {
 /* ---------- Início ---------- */
 el("#btnAddPeca").addEventListener("click", () => criarLinha());
 el("#btnResolver").addEventListener("click", resolver);
+el("#btnCancelar").addEventListener("click", () => {
+  el("#carregando").hidden = true;
+  if (el("#resultado").hidden) el("#estadoVazio").hidden = false;
+  el("#btnResolver").disabled = false;
+  cancelarExecucao();
+});
 el("#btnResetParams").addEventListener("click", restaurarPadroes);
 el("#btnBaixarPlano").addEventListener("click", baixarPlanoHtml);
 el("#btnBaixarResultados").addEventListener("click", baixarResultadosXlsx);
@@ -782,7 +937,7 @@ const TOUR_PASSOS = [
   },
   {
     alvo: ".recolhivel",
-    posicao: "baixo",
+    posicao: "cima",
     titulo: "3. Parâmetros (opcional)",
     texto: "Aqui você ajusta como o algoritmo trabalha. Não precisa mexer — os valores " +
            "padrão funcionam bem. Toque no 'i' de cada item para entender o que faz.",
@@ -872,31 +1027,52 @@ function posicionarDestaque(alvo, posicao) {
   els.buraco.style.width = `${r.width + pad * 2}px`;
   els.buraco.style.height = `${r.height + pad * 2}px`;
 
-  // posiciona o balão perto do alvo, com seta
   const balao = els.balao;
   balao.style.transform = "none";
   const bw = 300, gap = 16;
-  let left, top, classe;
-  posicao = posicao || "baixo";
+  const vh = window.innerHeight, vw = window.innerWidth;
 
+  // mede a altura real do balão (com o conteúdo do passo já preenchido)
+  balao.className = "tour-balao";
+  balao.style.left = "0px";
+  balao.style.top = "0px";
+  const bh = balao.offsetHeight || 180;
+
+  const espacoAbaixo = vh - r.bottom;
+  const espacoAcima = r.top;
+
+  posicao = posicao || "baixo";
+  // auto-flip vertical: se pediu "baixo" mas não cabe, e cabe acima, vira "cima"
+  if (posicao === "baixo" && espacoAbaixo < bh + gap + 12 && espacoAcima > espacoAbaixo) {
+    posicao = "cima";
+  } else if (posicao === "cima" && espacoAcima < bh + gap + 12 && espacoAbaixo > espacoAcima) {
+    posicao = "baixo";
+  }
+
+  let left, top, classe;
   if (posicao === "baixo") {
-    left = Math.min(Math.max(r.left, 12), window.innerWidth - bw - 12);
+    left = Math.min(Math.max(r.left, 12), vw - bw - 12);
     top = r.bottom + gap;
     classe = "seta-cima";
   } else if (posicao === "cima") {
-    left = Math.min(Math.max(r.left, 12), window.innerWidth - bw - 12);
+    left = Math.min(Math.max(r.left, 12), vw - bw - 12);
     top = r.top - gap;
     balao.style.transform = "translateY(-100%)";
     classe = "seta-baixo";
   } else if (posicao === "esquerda") {
     left = Math.max(r.left - bw - gap, 12);
-    top = Math.max(r.top, 12);
+    top = Math.max(Math.min(r.top, vh - bh - 12), 12);
     classe = "seta-direita";
   } else {
     left = r.right + gap;
-    top = Math.max(r.top, 12);
+    top = Math.max(Math.min(r.top, vh - bh - 12), 12);
     classe = "seta-esquerda";
   }
+
+  // garantia final: nunca deixa o balão sair por cima da tela
+  if (posicao !== "cima" && top + bh > vh - 8) top = Math.max(8, vh - bh - 8);
+  if (top < 8 && posicao !== "cima") top = 8;
+
   balao.style.left = `${left}px`;
   balao.style.top = `${top}px`;
   balao.className = "tour-balao " + classe;
