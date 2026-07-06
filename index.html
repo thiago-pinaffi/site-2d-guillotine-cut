@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plano de Corte · Otimizador 2D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Spline+Sans+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="topo__marca">
+      <span class="topo__glifo" aria-hidden="true"></span>
+      <div>
+        <h1>Plano de Corte</h1>
+        <p class="topo__sub">Otimizador de corte guilhotinado 2D · algoritmo genético</p>
+      </div>
+    </div>
+    <div class="topo__dir">
+      <div class="topo__nota">Cada cor é cortada em chapas separadas.</div>
+      <details class="sobre">
+        <summary class="sobre__botao">sobre &amp; termos de uso</summary>
+        <div class="sobre__caixa">
+          <p>
+            Este software é fruto da dissertação de mestrado de
+            <strong>Thiago da Silva Pinaffi</strong>
+            (<a href="mailto:thiagospinaffi@gmail.com">thiagospinaffi@gmail.com</a>) —
+            para mais informações, entre em contato.
+          </p>
+          <p>
+            Foi baseado em uma indústria brasileira de móveis de pequeno porte,
+            fabricante de mesas, cadeiras e beliches.
+          </p>
+          <p class="sobre__termos">
+            É <strong>proibida a comercialização</strong>. O software é livre para
+            uso em pequenas empresas.
+          </p>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- COLUNA DE ENTRADA -->
+    <section class="painel" aria-labelledby="tit-entrada">
+      <h2 id="tit-entrada" class="painel__titulo"><span class="painel__num">01</span> A chapa</h2>
+
+      <div class="chapa-dims">
+        <label class="campo">
+          <span class="campo__rot">Largura</span>
+          <input type="number" id="larguraBin" value="2750" min="1" inputmode="numeric">
+        </label>
+        <span class="chapa-dims__x" aria-hidden="true">×</span>
+        <label class="campo">
+          <span class="campo__rot">Altura</span>
+          <input type="number" id="alturaBin" value="1830" min="1" inputmode="numeric">
+        </label>
+        <span class="chapa-dims__un">mm</span>
+      </div>
+
+      <h2 class="painel__titulo"><span class="painel__num">02</span> As peças</h2>
+
+      <div id="zonaImport" class="import" tabindex="0" role="button"
+           aria-label="Importar peças de uma planilha">
+        <input type="file" id="inputPlanilha" accept=".xlsx,.xls,.csv" hidden>
+        <div class="import__conteudo">
+          <span class="import__icone" aria-hidden="true"></span>
+          <span class="import__texto">
+            <strong>Importar planilha</strong> — arraste aqui ou clique para escolher
+          </span>
+        </div>
+        <p class="import__modelo">
+          Muitas peças? <a href="#" id="linkModelo">Baixar planilha-modelo</a>,
+          preencha e importe. A tabela abaixo é preenchida automaticamente — você ainda
+          pode editar, adicionar e remover à mão.
+        </p>
+      </div>
+      <div id="importFeedback" class="import-feedback" hidden></div>
+
+      <div class="tabela-pecas" role="table" aria-label="Lista de peças">
+        <div class="tabela-pecas__cab" role="row">
+          <span role="columnheader">Largura</span>
+          <span role="columnheader">Altura</span>
+          <span role="columnheader">Cor</span>
+          <span role="columnheader">Qtd</span>
+          <span role="columnheader" aria-label="Remover"></span>
+        </div>
+        <div id="linhasPecas"></div>
+      </div>
+
+      <div class="pecas-acoes">
+        <button type="button" id="btnAddPeca" class="btn btn--fantasma">
+          + Adicionar peça
+        </button>
+        <button type="button" id="btnLimparPecas" class="btn btn--fantasma btn--mini">
+          Limpar tudo
+        </button>
+      </div>
+
+      <details class="recolhivel">
+        <summary class="recolhivel__cab">
+          <span class="painel__num">03</span>
+          <span class="recolhivel__tit">Parâmetros do algoritmo</span>
+          <span class="recolhivel__estado">
+            <span class="recolhivel__fechado">ajustar</span>
+            <span class="recolhivel__aberto">recolher</span>
+            <span class="recolhivel__seta" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="recolhivel__corpo">
+          <p class="ajuda ajuda--topo">
+            Ajuste como o algoritmo busca a solução. Toque no
+            <span class="i-inline">i</span> de cada item para entender o que ele
+            faz. Em dúvida, deixe como está — os padrões funcionam bem.
+          </p>
+          <div id="guiaParametros" class="guia"></div>
+          <button type="button" id="btnResetParams" class="btn btn--fantasma btn--mini">
+            Restaurar padrões
+          </button>
+        </div>
+      </details>
+
+      <button type="button" id="btnResolver" class="btn btn--forte">
+        Calcular plano de corte
+      </button>
+      <div id="erro" class="erro" role="alert" hidden></div>
+    </section>
+
+    <!-- COLUNA DE RESULTADO -->
+    <section class="painel painel--saida" aria-labelledby="tit-saida">
+      <h2 id="tit-saida" class="painel__titulo"><span class="painel__num">04</span> O resultado</h2>
+
+      <div id="estadoVazio" class="vazio">
+        <div class="vazio__marca" aria-hidden="true"></div>
+        <p>Informe a chapa e as peças, depois <strong>Calcular plano de corte</strong>.</p>
+        <p class="vazio__dica">O desenho de cada chapa aparece aqui, em escala.</p>
+      </div>
+
+      <div id="carregando" class="carregando" hidden>
+        <div class="serra" aria-hidden="true"><span></span></div>
+        <p id="carregandoTxt">Otimizando o corte…</p>
+      </div>
+
+      <div id="resultado" hidden>
+        <div class="resumo" id="resumo"></div>
+        <div class="downloads">
+          <button type="button" id="btnBaixarPlano" class="btn btn--forte btn--baixar">
+            Baixar plano de corte (HTML)
+          </button>
+          <button type="button" id="btnBaixarResultados" class="btn btn--fantasma btn--baixar">
+            Baixar resultados (planilha)
+          </button>
+        </div>
+        <div class="chapas" id="chapas"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <span>Roda no seu computador · nenhum dado sai daqui</span>
+  </footer>
+
+  <div id="carregandoApp" class="carregando-app">
+    <div class="carregando-app__caixa">
+      <div class="serra" aria-hidden="true"><span></span></div>
+      <p id="carregandoAppTxt">Carregando o programa…</p>
+      <p class="carregando-app__sub">Na primeira vez pode levar alguns segundos.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
