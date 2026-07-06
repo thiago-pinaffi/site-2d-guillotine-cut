@@ -39,9 +39,21 @@ async function iniciar() {
     try { pyodide.FS.mkdir(d); } catch (e) { /* já existe */ }
   }
   for (const caminho of PY_MODULOS) {
-    const resp = await fetch("pysrc/" + caminho);
-    if (!resp.ok) throw new Error("Falha ao carregar " + caminho);
-    pyodide.FS.writeFile(caminho, await resp.text());
+    // Os __init__.py são apenas marcadores de pacote (podem estar vazios ou
+    // ausentes). Se não vierem do servidor, criamos um vazio no lugar, para
+    // o carregamento não falhar por causa deles.
+    const ehInit = caminho.endsWith("__init__.py");
+    try {
+      const resp = await fetch("pysrc/" + caminho, { cache: "no-store" });
+      if (!resp.ok) {
+        if (ehInit) { pyodide.FS.writeFile(caminho, "# pacote\n"); continue; }
+        throw new Error("HTTP " + resp.status);
+      }
+      pyodide.FS.writeFile(caminho, await resp.text());
+    } catch (e) {
+      if (ehInit) { pyodide.FS.writeFile(caminho, "# pacote\n"); continue; }
+      throw new Error("Falha ao carregar " + caminho + " (" + e.message + ")");
+    }
   }
   pyodide.runPython("import sys; sys.path.insert(0, '.')");
   pyodide.runPython("import bridge, json");
