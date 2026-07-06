@@ -13,7 +13,8 @@
 <body>
   <header class="topo">
     <div class="topo__marca">
-      <span class="topo__glifo" aria-hidden="true"></span>
+      <!--<span class="topo__glifo" aria-hidden="true"></span>-->
+      <img class="topo__glifo" src="logo.png" alt="Plano de Corte" />
       <div>
         <h1>Plano de Corte</h1>
         <p class="topo__sub">Otimizador de corte guilhotinado 2D · algoritmo genético</p>
@@ -53,12 +54,12 @@
 
       <div class="chapa-dims">
         <label class="campo">
-          <span class="campo__rot">Largura</span>
+          <span class="campo__rot">Comprimento</span>
           <input type="number" id="larguraBin" value="2750" min="1" inputmode="numeric">
         </label>
         <span class="chapa-dims__x" aria-hidden="true">×</span>
         <label class="campo">
-          <span class="campo__rot">Altura</span>
+          <span class="campo__rot">Largura</span>
           <input type="number" id="alturaBin" value="1830" min="1" inputmode="numeric">
         </label>
         <span class="chapa-dims__un">mm</span>
@@ -85,8 +86,8 @@
 
       <div class="tabela-pecas" role="table" aria-label="Lista de peças">
         <div class="tabela-pecas__cab" role="row">
+          <span role="columnheader">Comprimento</span>
           <span role="columnheader">Largura</span>
-          <span role="columnheader">Altura</span>
           <span role="columnheader">Cor</span>
           <span role="columnheader">Qtd</span>
           <span role="columnheader" aria-label="Remover"></span>

@@ -50,6 +50,7 @@ body {
   flex-wrap: wrap;
 }
 .topo__marca { display: flex; align-items: center; gap: 0.85rem; }
+/*
 .topo__glifo {
   width: 34px; height: 34px; flex: none;
   border: 1.5px solid var(--grafite);
@@ -57,6 +58,14 @@ body {
   background:
     linear-gradient(135deg, transparent 46%, var(--lapis) 46% 54%, transparent 54%),
     linear-gradient(45deg,  transparent 46%, var(--grafite) 46% 54%, transparent 54%);
+}
+    */
+.topo__glifo {
+  height: 40px;      /* ajuste o tamanho aqui, se quiser */
+  width: auto;
+  flex: none;
+  object-fit: contain;
+  border-radius: var(--r);
 }
 .topo h1 {
   font-family: var(--disp);

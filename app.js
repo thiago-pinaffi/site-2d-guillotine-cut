@@ -265,8 +265,8 @@ function criarLinha(dados = {}) {
   linha.dataset.id = contadorLinhas;
 
   linha.innerHTML = `
-    <input type="number" class="in-larg" min="1" inputmode="numeric" value="${dados.largura ?? ""}" aria-label="Largura da peça">
-    <input type="number" class="in-alt" min="1" inputmode="numeric" value="${dados.altura ?? ""}" aria-label="Altura da peça">
+    <input type="number" class="in-larg" min="1" inputmode="numeric" value="${dados.largura ?? ""}" aria-label="Comprimento da peça">
+    <input type="number" class="in-alt" min="1" inputmode="numeric" value="${dados.altura ?? ""}" aria-label="Largura da peça">
     <span class="celula-cor">
       <span class="celula-cor__amostra"></span>
       <input type="text" class="in-cor" value="${dados.cor ?? ""}" placeholder="ex: Branco" aria-label="Cor da peça">
@@ -610,8 +610,8 @@ function feedbackImport(msg, erro = false) {
 
 // Reconhecimento tolerante de nomes de coluna (espelha o backend Python).
 const _SINONIMOS = {
-  largura: ["largura","larg","width","w","comprimento","base"],
-  altura: ["altura","alt","height","h","profundidade"],
+  largura: ["comprimento","comp","width","w","base"],
+  altura: ["largura","larg","alt","height","h","profundidade","prof"],
   cor: ["cor","color","colour","material"],
   quantidade: ["quantidade","qtd","qtde","quant","qty","quantity","demanda"],
 };
@@ -645,7 +645,7 @@ async function enviarPlanilha(arquivo) {
     const faltando = ["largura","altura","cor","quantidade"].filter((c) => !(c in mapa));
     if (faltando.length) {
       throw new Error(
-        "A planilha precisa ter as colunas: largura, altura, cor, quantidade.\n" +
+        "A planilha precisa ter as colunas: comprimento, largura, cor, quantidade.\n" +
         "Não encontrei: " + faltando.join(", ") + ".\n" +
         "Baixe a planilha-modelo e use o mesmo formato."
       );
@@ -675,7 +675,7 @@ async function enviarPlanilha(arquivo) {
 
     if (!pecas.length) {
       throw new Error(
-        "Nenhuma peça válida foi encontrada. Verifique se largura, altura e " +
+        "Nenhuma peça válida foi encontrada. Verifique se comprimento, largura e " +
         "quantidade são números maiores que zero e se a cor está preenchida."
       );
     }
@@ -692,7 +692,7 @@ async function enviarPlanilha(arquivo) {
 /* Gera e baixa a planilha-modelo (client-side, SheetJS). */
 function baixarModelo() {
   const dados = [
-    ["largura", "altura", "cor", "quantidade"],
+    ["comprimento", "largura", "cor", "quantidade"],
     [396, 700, "Branco", 4],
     [800, 300, "Branco", 3],
     [500, 500, "Carvalho", 2],
@@ -763,13 +763,13 @@ function baixarResultadosXlsx() {
   if (!ULTIMO_RESULTADO) return;
   const res = ULTIMO_RESULTADO;
   // Aba Resumo
-  const resumo = [["Chapa", "Cor", "Largura", "Altura", "Nº de peças", "Aproveitamento"]];
+  const resumo = [["Chapa", "Cor", "Comprimento", "Largura", "Nº de peças", "Aproveitamento"]];
   res.chapas.forEach((ch) => {
     resumo.push([ch.indice + 1, ch.cor, ch.largura, ch.altura, ch.pecas.length,
       Math.round(ch.aproveitamento * 100) / 100]);
   });
   // Aba Peças
-  const pecas = [["Chapa", "Cor", "Peça (id)", "Largura", "Altura", "X", "Y"]];
+  const pecas = [["Chapa", "Cor", "Peça (id)", "Comprimento", "Largura", "X", "Y"]];
   res.chapas.forEach((ch) => {
     ch.pecas.forEach((pc) => {
       pecas.push([ch.indice + 1, ch.cor, pc.id, pc.largura, pc.altura, pc.x, pc.y]);
@@ -884,12 +884,17 @@ document.addEventListener("click", (ev) => {
   guia.open = false;
 });
 
-// Ponto 2: ao calcular, evitar que a página "pule" para o topo.
+/* // Ponto 2: ao calcular, evitar que a página "pule" para o topo.
 // O clique no botão pode mudar o foco/layout; preservamos a rolagem.
 el("#btnResolver").addEventListener("click", () => {
   const y = window.scrollY;
   // restaura a posição no próximo quadro, caso algo tenha rolado
   requestAnimationFrame(() => window.scrollTo({ top: y }));
+}); */
+
+// Ao calcular, rolar suavemente para o topo da página.
+el("#btnResolver").addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
 // Peças de exemplo para o primeiro contato (marcenaria: portas + prateleiras)
@@ -918,7 +923,7 @@ const TOUR_PASSOS = [
     alvo: "#tit-entrada",
     posicao: "baixo",
     titulo: "1. A chapa",
-    texto: "Comece informando o tamanho da sua chapa: largura e altura. Use sempre " +
+    texto: "Comece informando o tamanho da sua chapa: comprimento e largura. Use sempre " +
            "a mesma unidade para tudo (recomendamos milímetros).",
   },
   {
@@ -932,7 +937,7 @@ const TOUR_PASSOS = [
     alvo: "#linhasPecas",
     posicao: "baixo",
     titulo: "2. As peças — à mão",
-    texto: "Cada linha é uma peça: largura, altura, cor e quantidade. Peças de cores " +
+    texto: "Cada linha é uma peça: comprimento, largura, cor e quantidade. Peças de cores " +
            "diferentes são cortadas em chapas separadas, como na produção real.",
   },
   {
