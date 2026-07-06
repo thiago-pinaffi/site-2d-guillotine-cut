@@ -802,3 +802,134 @@ input[type="text"]:focus {
 @media (prefers-reduced-motion: reduce) {
   .carregando-app__caixa .serra span { animation: none; left: 70px; }
 }
+
+/* Aviso de arredondamento (números decimais) */
+.aviso-arred {
+  margin-bottom: 1.2rem;
+  padding: 0.7rem 0.85rem;
+  border: 1.5px solid #C99A2E;
+  border-left-width: 4px;
+  border-radius: var(--r);
+  background: rgba(216, 162, 74, 0.12);
+  color: #7A5A12;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+/* ---------- Botão "Como usar" no cabeçalho ---------- */
+.btn-ajuda {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--lapis-esc);
+  background: rgba(181, 70, 46, 0.06);
+  border: 1.5px solid var(--lapis);
+  border-radius: var(--r);
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.btn-ajuda:hover { background: rgba(181, 70, 46, 0.14); }
+
+/* ---------- Tour guiado ---------- */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+/* escurece a tela toda usando uma sombra gigante ao redor do "buraco" */
+.tour-buraco {
+  position: absolute;
+  border-radius: 6px;
+  box-shadow: 0 0 0 9999px rgba(43, 41, 37, 0.66);
+  border: 2px solid var(--lapis);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  opacity: 0;
+}
+.tour-balao {
+  position: absolute;
+  width: 300px;
+  background: var(--carta);
+  border: 1.5px solid var(--grafite);
+  border-radius: var(--r);
+  box-shadow: 0 10px 30px rgba(43, 41, 37, 0.35);
+  padding: 1rem 1.1rem;
+  z-index: 201;
+}
+.tour-balao__titulo {
+  font-family: var(--disp);
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+}
+.tour-balao__texto {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  margin: 0 0 0.9rem;
+  color: var(--grafite);
+}
+.tour-balao__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.tour-balao__contador {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--grafite-med);
+}
+.tour-balao__botoes { display: flex; gap: 0.4rem; }
+.tour-btn {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--r);
+  cursor: pointer;
+  border: 1.5px solid;
+}
+.tour-btn--forte {
+  background: var(--lapis);
+  color: #FBF3EE;
+  border-color: var(--lapis-esc);
+}
+.tour-btn--forte:hover { background: var(--lapis-esc); }
+.tour-btn--fantasma {
+  background: transparent;
+  color: var(--grafite-med);
+  border-color: var(--linha);
+}
+.tour-btn--fantasma:hover { border-color: var(--grafite); color: var(--grafite); }
+
+/* setas do balão */
+.tour-balao::after {
+  content: "";
+  position: absolute;
+  border: 9px solid transparent;
+}
+.tour-balao.seta-cima::after {
+  bottom: 100%; left: 28px; border-bottom-color: var(--grafite);
+}
+.tour-balao.seta-baixo::after {
+  top: 100%; left: 28px; border-top-color: var(--grafite);
+}
+.tour-balao.seta-esquerda::after {
+  right: 100%; top: 20px; border-right-color: var(--grafite);
+}
+.tour-balao.seta-direita::after {
+  left: 100%; top: 20px; border-left-color: var(--grafite);
+}
+
+@media (max-width: 620px) {
+  .tour-balao {
+    width: auto;
+    left: 5vw !important;
+    right: 5vw;
+    top: auto !important;
+    bottom: 20px;
+    transform: none !important;
+  }
+  .tour-balao::after { display: none; }
+}

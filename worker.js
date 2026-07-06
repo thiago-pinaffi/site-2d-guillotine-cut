@@ -8,16 +8,13 @@ importScripts("https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js");
 let pyodide = null;
 
 const PY_MODULOS = [
-  "utilitarios/__init__.py",
   "utilitarios/leitor_itens.py",
   "utilitarios/desenhador.py",
-  "empacotador/__init__.py",
   "empacotador/item.py",
   "empacotador/faixa3.py",
   "empacotador/faixa2.py",
   "empacotador/bin.py",
   "empacotador/empacotador.py",
-  "algoritmo_genetico/__init__.py",
   "algoritmo_genetico/parametros_ga.py",
   "algoritmo_genetico/individuo.py",
   "algoritmo_genetico/algoritmo_genetico.py",
@@ -39,19 +36,11 @@ async function iniciar() {
     try { pyodide.FS.mkdir(d); } catch (e) { /* já existe */ }
   }
   for (const caminho of PY_MODULOS) {
-    // Os __init__.py são apenas marcadores de pacote (podem estar vazios ou
-    // ausentes). Se não vierem do servidor, criamos um vazio no lugar, para
-    // o carregamento não falhar por causa deles.
-    const ehInit = caminho.endsWith("__init__.py");
     try {
       const resp = await fetch("pysrc/" + caminho, { cache: "no-store" });
-      if (!resp.ok) {
-        if (ehInit) { pyodide.FS.writeFile(caminho, "# pacote\n"); continue; }
-        throw new Error("HTTP " + resp.status);
-      }
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
       pyodide.FS.writeFile(caminho, await resp.text());
     } catch (e) {
-      if (ehInit) { pyodide.FS.writeFile(caminho, "# pacote\n"); continue; }
       throw new Error("Falha ao carregar " + caminho + " (" + e.message + ")");
     }
   }

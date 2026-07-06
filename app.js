@@ -264,15 +264,41 @@ function criarLinha(dados = {}) {
   linhasPecas.appendChild(linha);
 }
 
+// Lê o valor numérico de um campo aceitando vírgula OU ponto como decimal.
+function _numero(txt) {
+  if (txt == null) return NaN;
+  return parseFloat(String(txt).replace(",", "."));
+}
+
+// estado: alguma dimensão foi arredondada na última leitura?
+let _houveArredondamento = false;
+
+function mostrarAvisoArredondamento() {
+  const a = document.getElementById("avisoArredondamento");
+  if (a) a.hidden = false;
+}
+function esconderAvisoArredondamento() {
+  const a = document.getElementById("avisoArredondamento");
+  if (a) a.hidden = true;
+}
+
 function lerPecas() {
   const pecas = [];
+  _houveArredondamento = false;
   linhasPecas.querySelectorAll(".linha-peca").forEach((linha) => {
-    const largura = parseInt(linha.querySelector(".in-larg").value, 10);
-    const altura = parseInt(linha.querySelector(".in-alt").value, 10);
+    const lRaw = _numero(linha.querySelector(".in-larg").value);
+    const aRaw = _numero(linha.querySelector(".in-alt").value);
     const cor = linha.querySelector(".in-cor").value.trim();
-    const quantidade = parseInt(linha.querySelector(".in-qtd").value, 10);
+    const qRaw = _numero(linha.querySelector(".in-qtd").value);
     // ignora linhas totalmente vazias
-    if (!largura && !altura && !cor) return;
+    if (!lRaw && !aRaw && !cor) return;
+
+    const largura = Math.round(lRaw);
+    const altura = Math.round(aRaw);
+    const quantidade = Math.round(qRaw);
+    if (largura !== lRaw || altura !== aRaw || quantidade !== qRaw) {
+      _houveArredondamento = true;
+    }
     pecas.push({ largura, altura, cor, quantidade });
   });
   return pecas;
@@ -374,11 +400,21 @@ async function resolver() {
   const erroBox = el("#erro");
   erroBox.hidden = true;
 
-  const largura_bin = parseInt(el("#larguraBin").value, 10);
-  const altura_bin = parseInt(el("#alturaBin").value, 10);
+  const lbRaw = _numero(el("#larguraBin").value);
+  const abRaw = _numero(el("#alturaBin").value);
+  const largura_bin = Math.round(lbRaw);
+  const altura_bin = Math.round(abRaw);
   const parametros = lerParametros();
   const tempo_max = parametros.tempo_max || 10;
   const pecas = lerPecas();
+
+  // Avisa se algum valor teve de ser arredondado (o algoritmo usa inteiros).
+  const binArredondado = largura_bin !== lbRaw || altura_bin !== abRaw;
+  if (_houveArredondamento || binArredondado) {
+    mostrarAvisoArredondamento();
+  } else {
+    esconderAvisoArredondamento();
+  }
 
   // Estimativa de tempo p/ avisar o usuário (nº de cores × tempo)
   const cores = new Set(pecas.map((p) => (p.cor || "").toLowerCase())).size || 1;
@@ -682,6 +718,24 @@ el("#linkModelo").addEventListener("click", (ev) => {
   baixarModelo();
 });
 ligarImportacao();
+ligarTour();
+
+// Ponto 5: recolher a guia de parâmetros ao clicar fora dela.
+document.addEventListener("click", (ev) => {
+  const guia = document.querySelector(".recolhivel");
+  if (!guia || !guia.open) return;
+  // se o clique foi dentro da guia, não faz nada
+  if (guia.contains(ev.target)) return;
+  guia.open = false;
+});
+
+// Ponto 2: ao calcular, evitar que a página "pule" para o topo.
+// O clique no botão pode mudar o foco/layout; preservamos a rolagem.
+el("#btnResolver").addEventListener("click", () => {
+  const y = window.scrollY;
+  // restaura a posição no próximo quadro, caso algo tenha rolado
+  requestAnimationFrame(() => window.scrollTo({ top: y }));
+});
 
 // Peças de exemplo para o primeiro contato (marcenaria: portas + prateleiras)
 criarLinha({ largura: 396, altura: 700, cor: "Branco", quantidade: 4 });
@@ -692,3 +746,184 @@ criarLinha({ largura: 500, altura: 500, cor: "Carvalho", quantidade: 2 });
 iniciarPython().then(() => {
   if (PY_PRONTO) carregarSpec();
 });
+
+/* ============================================================
+   TOUR GUIADO (manual de uso passo a passo)
+   Overlay que destaca cada parte da tela e explica o que faz.
+   Roda sozinho na primeira visita; pode ser revisto pelo botão "Como usar".
+   ============================================================ */
+const TOUR_PASSOS = [
+  {
+    alvo: null,
+    titulo: "Bem-vindo ao Plano de Corte!",
+    texto: "Este programa calcula como cortar suas chapas aproveitando o máximo " +
+           "do material. Vou te mostrar rapidamente como usar. Leva menos de um minuto.",
+  },
+  {
+    alvo: "#tit-entrada",
+    posicao: "baixo",
+    titulo: "1. A chapa",
+    texto: "Comece informando o tamanho da sua chapa: largura e altura. Use sempre " +
+           "a mesma unidade para tudo (recomendamos milímetros).",
+  },
+  {
+    alvo: "#zonaImport",
+    posicao: "baixo",
+    titulo: "2. As peças — por planilha",
+    texto: "Se você tem muitas peças, baixe a planilha-modelo, preencha no Excel e " +
+           "arraste aqui. A tabela é preenchida sozinha. Também dá para digitar à mão.",
+  },
+  {
+    alvo: "#linhasPecas",
+    posicao: "baixo",
+    titulo: "2. As peças — à mão",
+    texto: "Cada linha é uma peça: largura, altura, cor e quantidade. Peças de cores " +
+           "diferentes são cortadas em chapas separadas, como na produção real.",
+  },
+  {
+    alvo: ".recolhivel",
+    posicao: "baixo",
+    titulo: "3. Parâmetros (opcional)",
+    texto: "Aqui você ajusta como o algoritmo trabalha. Não precisa mexer — os valores " +
+           "padrão funcionam bem. Toque no 'i' de cada item para entender o que faz.",
+  },
+  {
+    alvo: "#btnResolver",
+    posicao: "cima",
+    titulo: "4. Calcular",
+    texto: "Quando terminar, clique aqui. O programa desenha o plano de corte de cada " +
+           "chapa, mostrando onde fica cada peça.",
+  },
+  {
+    alvo: ".painel--saida",
+    posicao: "esquerda",
+    titulo: "5. O resultado",
+    texto: "O desenho de cada chapa aparece aqui, em escala. Você pode baixar o plano " +
+           "de corte (para imprimir) e uma planilha com os resultados.",
+  },
+  {
+    alvo: "#btnAjuda",
+    posicao: "baixo",
+    titulo: "Pronto!",
+    texto: "É só isso. Sempre que quiser rever esta explicação, clique em 'Como usar' " +
+           "aqui no topo. Bom trabalho!",
+  },
+];
+
+let _tourIdx = 0;
+
+function _tourEls() {
+  return {
+    overlay: document.getElementById("tourOverlay"),
+    buraco: document.getElementById("tourBuraco"),
+    balao: document.getElementById("tourBalao"),
+    titulo: document.getElementById("tourTitulo"),
+    texto: document.getElementById("tourTexto"),
+    contador: document.getElementById("tourContador"),
+    btnProx: document.getElementById("tourProx"),
+    btnFechar: document.getElementById("tourFechar"),
+  };
+}
+
+function iniciarTour() {
+  _tourIdx = 0;
+  document.getElementById("tourOverlay").hidden = false;
+  mostrarPassoTour();
+}
+
+function fecharTour() {
+  document.getElementById("tourOverlay").hidden = true;
+  try { localStorage.setItem("tourVisto", "1"); } catch (e) {}
+}
+
+function mostrarPassoTour() {
+  const els = _tourEls();
+  const passo = TOUR_PASSOS[_tourIdx];
+
+  els.titulo.textContent = passo.titulo;
+  els.texto.textContent = passo.texto;
+  els.contador.textContent = `${_tourIdx + 1} de ${TOUR_PASSOS.length}`;
+  els.btnProx.textContent = _tourIdx === TOUR_PASSOS.length - 1 ? "Concluir" : "Seguinte →";
+
+  const alvo = passo.alvo ? document.querySelector(passo.alvo) : null;
+  if (alvo) {
+    alvo.scrollIntoView({ behavior: "smooth", block: "center" });
+    // pequeno atraso para o scroll assentar antes de medir
+    setTimeout(() => posicionarDestaque(alvo, passo.posicao), 300);
+  } else {
+    // passo sem alvo: destaque some, balão centralizado
+    els.buraco.style.opacity = "0";
+    els.balao.style.left = "50%";
+    els.balao.style.top = "50%";
+    els.balao.style.transform = "translate(-50%, -50%)";
+    els.balao.className = "tour-balao";
+  }
+}
+
+function posicionarDestaque(alvo, posicao) {
+  const els = _tourEls();
+  const r = alvo.getBoundingClientRect();
+  const pad = 8;
+
+  // "buraco" que destaca o elemento
+  els.buraco.style.opacity = "1";
+  els.buraco.style.left = `${r.left - pad}px`;
+  els.buraco.style.top = `${r.top - pad}px`;
+  els.buraco.style.width = `${r.width + pad * 2}px`;
+  els.buraco.style.height = `${r.height + pad * 2}px`;
+
+  // posiciona o balão perto do alvo, com seta
+  const balao = els.balao;
+  balao.style.transform = "none";
+  const bw = 300, gap = 16;
+  let left, top, classe;
+  posicao = posicao || "baixo";
+
+  if (posicao === "baixo") {
+    left = Math.min(Math.max(r.left, 12), window.innerWidth - bw - 12);
+    top = r.bottom + gap;
+    classe = "seta-cima";
+  } else if (posicao === "cima") {
+    left = Math.min(Math.max(r.left, 12), window.innerWidth - bw - 12);
+    top = r.top - gap;
+    balao.style.transform = "translateY(-100%)";
+    classe = "seta-baixo";
+  } else if (posicao === "esquerda") {
+    left = Math.max(r.left - bw - gap, 12);
+    top = Math.max(r.top, 12);
+    classe = "seta-direita";
+  } else {
+    left = r.right + gap;
+    top = Math.max(r.top, 12);
+    classe = "seta-esquerda";
+  }
+  balao.style.left = `${left}px`;
+  balao.style.top = `${top}px`;
+  balao.className = "tour-balao " + classe;
+}
+
+function ligarTour() {
+  const els = _tourEls();
+  els.btnProx.addEventListener("click", () => {
+    if (_tourIdx < TOUR_PASSOS.length - 1) {
+      _tourIdx++;
+      mostrarPassoTour();
+    } else {
+      fecharTour();
+    }
+  });
+  els.btnFechar.addEventListener("click", fecharTour);
+  // recalcula posição se a janela mudar de tamanho durante o tour
+  window.addEventListener("resize", () => {
+    if (!els.overlay.hidden) mostrarPassoTour();
+  });
+  document.getElementById("btnAjuda").addEventListener("click", iniciarTour);
+
+  // roda automaticamente na primeira visita
+  let visto = null;
+  try { visto = localStorage.getItem("tourVisto"); } catch (e) {}
+  if (!visto) {
+    // espera a interface montar antes de iniciar
+    setTimeout(iniciarTour, 800);
+  }
+}

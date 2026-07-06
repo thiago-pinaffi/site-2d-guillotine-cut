@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Plano de Corte · Otimizador 2D</title>
+  <link rel="icon" type="image/x-icon" href="icone.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Spline+Sans+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -19,6 +20,9 @@
       </div>
     </div>
     <div class="topo__dir">
+      <button type="button" id="btnAjuda" class="btn-ajuda" title="Ver o manual de uso">
+        <span aria-hidden="true">?</span> Como usar
+      </button>
       <div class="topo__nota">Cada cor é cortada em chapas separadas.</div>
       <details class="sobre">
         <summary class="sobre__botao">sobre &amp; termos de uso</summary>
@@ -144,6 +148,11 @@
       </div>
 
       <div id="resultado" hidden>
+        <div id="avisoArredondamento" class="aviso-arred" hidden>
+          Alguns valores tinham casas decimais e foram arredondados para o número
+          inteiro mais próximo, pois o corte trabalha com números inteiros. Dica:
+          use milímetros para evitar decimais.
+        </div>
         <div class="resumo" id="resumo"></div>
         <div class="downloads">
           <button type="button" id="btnBaixarPlano" class="btn btn--forte btn--baixar">
@@ -161,6 +170,21 @@
   <footer class="rodape">
     <span>Roda no seu computador · nenhum dado sai daqui</span>
   </footer>
+
+  <div id="tourOverlay" class="tour-overlay" hidden>
+    <div id="tourBuraco" class="tour-buraco"></div>
+    <div id="tourBalao" class="tour-balao">
+      <div id="tourTitulo" class="tour-balao__titulo"></div>
+      <p id="tourTexto" class="tour-balao__texto"></p>
+      <div class="tour-balao__rodape">
+        <span id="tourContador" class="tour-balao__contador"></span>
+        <div class="tour-balao__botoes">
+          <button type="button" id="tourFechar" class="tour-btn tour-btn--fantasma">Fechar</button>
+          <button type="button" id="tourProx" class="tour-btn tour-btn--forte">Seguinte →</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="carregandoApp" class="carregando-app">
     <div class="carregando-app__caixa">

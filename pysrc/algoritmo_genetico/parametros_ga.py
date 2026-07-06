@@ -13,7 +13,7 @@ class ParametrosGA:
             tamanho_populacao = 80,#82,
 
             num_geracoes = 1000000,
-            tempo_max = 600, #<- se quiser mexer no tempo é aqui
+            tempo_max = 30, #<- se quiser mexer no tempo é aqui
             
 
             percent_ind_TOP = 0.25,

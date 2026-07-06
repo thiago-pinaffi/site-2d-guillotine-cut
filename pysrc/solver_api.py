@@ -82,7 +82,8 @@ def agrupar_por_cor(pecas):
     for p in pecas:
         cor = str(p["cor"]).strip()
         grupos.setdefault(cor, []).append(
-            [int(p["largura"]), int(p["altura"]), int(p["quantidade"])]
+            [round(float(p["largura"])), round(float(p["altura"])),
+             round(float(p["quantidade"]))]
         )
     return grupos
 
@@ -154,7 +155,7 @@ def resolver(largura_bin, altura_bin, pecas, parametros=None, callback_cor=None)
     """
     validar_entrada(largura_bin, altura_bin, pecas)
 
-    dimensoes_bin = [int(largura_bin), int(altura_bin)]
+    dimensoes_bin = [round(float(largura_bin)), round(float(altura_bin))]
     grupos = agrupar_por_cor(pecas)
 
     chapas = []
